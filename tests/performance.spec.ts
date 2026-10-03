@@ -166,7 +166,9 @@ test.describe('💾 Caching', () => {
     });
     
     if (staticUrl) {
-      const urlPath = staticUrl.replace('http://localhost:3333', '');
+      // Беремо лише шлях: повний URL з origin'ом попереднього проєкту тут
+      // не підійде, бо baseURL може бути будь-яким (див. playwright.config.ts).
+      const urlPath = new URL(staticUrl).pathname;
       const staticHeaders = await perf.getCacheHeaders(urlPath);
       
       console.log('📋 Static Resource Cache Headers:');
@@ -304,20 +306,23 @@ test.describe('🚀 Advanced Features', () => {
 test.describe('🖱️ Interaction', () => {
   test('Click handler non-blocking', async ({ page }) => {
     await page.goto('/');
-    
-    // Знаходимо перший клікабельний елемент навігації
-    const navLink = page.locator('a[href]').first();
-    
+
+    // Беремо саме посилання на розділ: перший `a[href]` у розмітці — це
+    // skip-link із `#main`, клік по якому не робить мережевого запиту.
+    const navLink = page.locator('nav a[href^="/category/"]').first();
+
     await expect(navLink).toBeVisible();
-    
-    // Перевірка що клік працює без блокування
-    const [request] = await Promise.all([
-      page.waitForRequest(/.*/),
+
+    // Перевірка що клік працює без блокування і справді відкриває розділ.
+    // Next.js робить клієнтську навігацію через RSC-fetch, окремого
+    // document-запиту тому немає — чекаємо зміни URL.
+    await Promise.all([
+      page.waitForURL(/\/category\//),
       navLink.click()
     ]);
-    
-    console.log(`🖱️ Click triggered request: ${request.url()}`);
-    expect(request).toBeTruthy();
+
+    console.log(`🖱️ Click navigated to: ${page.url()}`);
+    expect(page.url()).toContain('/category/');
   });
 });
 

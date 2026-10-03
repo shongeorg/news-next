@@ -95,7 +95,9 @@ test.describe('♿ Accessibility (a11y) Tests', () => {
   });
 
   test('Form inputs have labels', async ({ page }) => {
-    await page.goto('/login');
+    // У цьому проєкті сторінки /login немає — перевіряємо форму пошуку,
+    // яка є на кожній сторінці (у хедері) та окремо на /search.
+    await page.goto('/search');
     
     const inputs = await page.evaluate(() => {
       const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]):not([type="submit"])'));

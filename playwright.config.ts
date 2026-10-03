@@ -1,40 +1,44 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * 📍 BASE URL — прописується тут в одному місці
- * Змініть це значення для тестування іншого сайту
+ * Можна перевизначити змінною середовища:
+ *   PLAYWRIGHT_BASE_URL=https://news-next-three.vercel.app npx playwright test
+ *
+ * Типова ціль — продакшн-сервер (`npx next start -p 3001`), бо тести
+ * продуктивності мають міряти саме production-збірку, а не `next dev`.
  */
-const BASE_URL = 'http://localhost:3333';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3001";
 
 export default defineConfig({
-  testDir: './tests',
-  
+  testDir: "./tests",
+
   // Повна назва тесту має виконуватися за цей час
   timeout: 30 * 1000,
-  
+
   // Час очікування для expect.assertions()
   expect: {
-    timeout: 5000
+    timeout: 5000,
   },
-  
+
   // Запускати тести паралельно
   fullyParallel: true,
-  
+
   // Кількість повторних спроб при невдачі
   retries: 1,
-  
+
   // Кількість воркерів (паралельних процесів)
   workers: undefined,
-  
+
   // Чи запускати тести, які залишилися після попереднього запуску
   forbidOnly: !!process.env.CI,
-  
+
   // Сторонні звіти
   reporter: [
-    ['list'],
-    ['html', { open: 'never', outputFolder: 'playwright-report' }]
+    ["list"],
+    ["html", { open: "never", outputFolder: "playwright-report" }],
   ],
-  
+
   // Спільні налаштування для всіх тестів
   use: {
     /**
@@ -42,19 +46,19 @@ export default defineConfig({
      * Всі відносні URL в тестах будуть відноситися до цього базового
      */
     baseURL: BASE_URL,
-    
+
     // Збирати trace при кожній невдачі
-    trace: 'on-first-retry',
-    
+    trace: "on-first-retry",
+
     // Збирати відео при кожній невдачі
-    video: 'on-first-retry',
-    
+    video: "on-first-retry",
+
     // Скріншоти при невдачах
-    screenshot: 'only-on-failure',
-    
+    screenshot: "only-on-failure",
+
     // Actionability checks
     actionTimeout: 10 * 1000,
-    
+
     // Навігація таймаут
     navigationTimeout: 30 * 1000,
   },
@@ -62,33 +66,33 @@ export default defineConfig({
   // Конфігурація проектів для різних браузерів
   projects: [
     {
-      name: 'chromium',
-      use: { 
-        ...devices['Desktop Chrome'],
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
         launchOptions: {
-          args: ['--enable-features=NetworkService,Preconnect']
-        }
+          args: ["--enable-features=NetworkService,Preconnect"],
+        },
       },
     },
 
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
     },
 
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
     },
 
     // Мобільні пристрої
     {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      name: "Mobile Chrome",
+      use: { ...devices["Pixel 5"] },
     },
     {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
+      name: "Mobile Safari",
+      use: { ...devices["iPhone 12"] },
     },
   ],
 

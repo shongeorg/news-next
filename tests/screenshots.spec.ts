@@ -1,4 +1,16 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+/**
+ * Безпечний скріншот.
+ *
+ * На мобільних проєктах (DPR 2–3) full-page знімок стрічки з 25 карток
+ * перевищує ліміт Chromium у 32767 px і робиться повільно, тому там знімаємо
+ * лише вікно; на десктопі (DPR 1) — всю сторінку.
+ */
+async function safeScreenshot(page: Page, fullPage: boolean): Promise<Buffer> {
+  const dpr = await page.evaluate(() => window.devicePixelRatio || 1);
+  return page.screenshot({ fullPage: fullPage && dpr < 1.5, timeout: 20000 });
+}
 
 /**
  * 📸 Cross-Browser Screenshot Tests
@@ -10,14 +22,14 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('📸 Cross-Browser Screenshots', () => {
-  test.describe.configure({ timeout: 15000, retries: 0 });
+  test.describe.configure({ timeout: 30000, retries: 0 });
 
   test('Desktop screenshot (1920x1080)', async ({ page, browserName }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const screenshot = await page.screenshot({ fullPage: true });
+    const screenshot = await safeScreenshot(page, true);
     
     expect(screenshot).toBeTruthy();
     console.log(`📸 Desktop screenshot made (${browserName})`);
@@ -28,7 +40,7 @@ test.describe('📸 Cross-Browser Screenshots', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const screenshot = await page.screenshot({ fullPage: true });
+    const screenshot = await safeScreenshot(page, true);
     
     expect(screenshot).toBeTruthy();
     console.log(`📸 Tablet screenshot made (${browserName})`);
@@ -39,7 +51,7 @@ test.describe('📸 Cross-Browser Screenshots', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const screenshot = await page.screenshot({ fullPage: true });
+    const screenshot = await safeScreenshot(page, true);
     
     expect(screenshot).toBeTruthy();
     console.log(`📸 Mobile screenshot made (${browserName})`);
@@ -96,26 +108,26 @@ test.describe('📸 Cross-Browser Screenshots', () => {
     }
   });
 
-  test('About page screenshot', async ({ page, browserName }) => {
+  test('Category page screenshot', async ({ page, browserName }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto('/about');
+    await page.goto('/category/technology');
     await page.waitForLoadState('networkidle');
     
-    const screenshot = await page.screenshot({ fullPage: true });
+    const screenshot = await safeScreenshot(page, true);
     
     expect(screenshot).toBeTruthy();
-    console.log(`📸 About page screenshot made (${browserName})`);
+    console.log(`📸 Category page screenshot made (${browserName})`);
   });
 
-  test('Login page screenshot', async ({ page, browserName }) => {
+  test('Search page screenshot', async ({ page, browserName }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto('/login');
+    await page.goto('/search?q=%D1%83%D0%BA%D1%80%D0%B0%D1%97%D0%BD%D0%B0');
     await page.waitForLoadState('networkidle');
     
-    const screenshot = await page.screenshot({ fullPage: true });
+    const screenshot = await safeScreenshot(page, true);
     
     expect(screenshot).toBeTruthy();
-    console.log(`📸 Login page screenshot made (${browserName})`);
+    console.log(`📸 Search page screenshot made (${browserName})`);
   });
 
   test('📋 Screenshot Summary Report', async ({ page, baseURL, browserName }) => {
@@ -159,33 +171,42 @@ test.describe('📸 Cross-Browser Screenshots', () => {
  * Для наступних - порівнюються з відхиленнями
  * 
  * Для оновлення еталонів: npx playwright test --update-snapshots
+ *
+ * ⚠️ Сторінки живляться з RSS і оновлюються кожні 5 хвилин, тому
+ * full-page еталони тут були б ніколи нестабільними. За еталон береться
+ * стабільний "хром" сайту — хедер із навігацією та формою пошуку.
  */
 test.describe('🎨 Visual Regression Tests', () => {
-  test.describe.configure({ timeout: 15000, retries: 0 });
+  test.describe.configure({ timeout: 30000, retries: 0 });
 
-  test('Homepage visual regression', async ({ page }) => {
+  test('Homepage header visual regression', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    // Зберігаємо як еталон або порівнюємо
-    expect(await page.screenshot()).toMatchSnapshot('homepage-desktop.png', {
+    const header = page.locator('header').first();
+    await expect(header).toBeVisible();
+    
+    expect(await header.screenshot()).toMatchSnapshot('header-desktop.png', {
       maxDiffPixels: 100 // Допускаємо 100 пікселів відхилень
     });
     
-    console.log(`🎨 Homepage visual regression check passed`);
+    console.log(`🎨 Homepage header visual regression check passed`);
   });
 
-  test('Mobile homepage visual regression', async ({ page }) => {
+  test('Mobile header visual regression', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    expect(await page.screenshot()).toMatchSnapshot('homepage-mobile.png', {
+    const header = page.locator('header').first();
+    await expect(header).toBeVisible();
+    
+    expect(await header.screenshot()).toMatchSnapshot('header-mobile.png', {
       maxDiffPixels: 100
     });
     
-    console.log(`🎨 Mobile homepage visual regression check passed`);
+    console.log(`🎨 Mobile header visual regression check passed`);
   });
 });
 
@@ -195,13 +216,13 @@ test.describe('🎨 Visual Regression Tests', () => {
  * Скріншоти на емульованих пристроях
  */
 test.describe('📱 Device Screenshots', () => {
-  test.describe.configure({ timeout: 15000, retries: 0 });
+  test.describe.configure({ timeout: 30000, retries: 0 });
 
   test('iPhone 12 screenshot', async ({ page, browserName }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const screenshot = await page.screenshot({ fullPage: true });
+    const screenshot = await safeScreenshot(page, true);
     
     expect(screenshot).toBeTruthy();
     console.log(`📱 iPhone 12 screenshot made (${browserName})`);
@@ -211,7 +232,7 @@ test.describe('📱 Device Screenshots', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const screenshot = await page.screenshot({ fullPage: true });
+    const screenshot = await safeScreenshot(page, true);
     
     expect(screenshot).toBeTruthy();
     console.log(`📱 Pixel 5 screenshot made (${browserName})`);
@@ -221,7 +242,7 @@ test.describe('📱 Device Screenshots', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const screenshot = await page.screenshot({ fullPage: true });
+    const screenshot = await safeScreenshot(page, true);
     
     expect(screenshot).toBeTruthy();
     console.log(`📱 iPad Pro screenshot made (${browserName})`);

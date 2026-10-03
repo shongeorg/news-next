@@ -38,7 +38,10 @@ interface CDPMetric {
 // ============================================================================
 
 test.describe('📱 Lighthouse Mobile Performance', () => {
-  test('Mobile Performance Audit', async ({ page }) => {
+  test('Mobile Performance Audit', async ({ page, browserName }) => {
+    // Аудит іде через CDP (Chrome DevTools Protocol) — він працює лише в Chromium
+    test.skip(browserName !== 'chromium', 'CDP аудит підтримується тільки в Chromium');
+
     // Емуляція мобільного пристрою (Pixel 5)
     await page.emulateMedia({ media: 'screen' });
     await page.setViewportSize({ width: 393, height: 851 });
@@ -92,7 +95,10 @@ test.describe('📱 Lighthouse Mobile Performance', () => {
 // ============================================================================
 
 test.describe('🖥️ Lighthouse Desktop Performance', () => {
-  test('Desktop Performance Audit', async ({ page }) => {
+  test('Desktop Performance Audit', async ({ page, browserName }) => {
+    // Аудит іде через CDP (Chrome DevTools Protocol) — він працює лише в Chromium
+    test.skip(browserName !== 'chromium', 'CDP аудит підтримується тільки в Chromium');
+
     // Емуляція десктопу
     await page.emulateMedia({ media: 'screen' });
     await page.setViewportSize({ width: 1920, height: 1080 });
