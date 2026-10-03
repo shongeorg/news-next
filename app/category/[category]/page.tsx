@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { NewsGrid } from "@/components/news/NewsGrid";
+import { NewsGridSkeleton } from "@/components/news/NewsGridSkeleton";
 import { NewsPagination } from "@/components/news/NewsPagination";
 import { paginate, parsePage } from "@/lib/pagination";
 import { getNewsByCategory } from "@/lib/rss/aggregator";
-import { getCategoryMeta, isNewsCategory } from "@/types/news";
+import { getCategoryMeta, isNewsCategory, type NewsCategory } from "@/types/news";
 
 type CategoryParams = Promise<{ category: string }>;
 type CategorySearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
@@ -15,7 +17,10 @@ export async function generateMetadata({
   params: CategoryParams;
 }): Promise<Metadata> {
   const { category } = await params;
-  if (!isNewsCategory(category)) return {};
+  if (!isNewsCategory(category)) {
+    // Throwing before the shell streams guarantees a real HTTP 404 status.
+    notFound();
+  }
   const meta = getCategoryMeta(category);
   return {
     title: meta.label,
@@ -26,6 +31,9 @@ export async function generateMetadata({
 /**
  * Category listing: /category/[category]
  * 25 articles per page, URL-based pagination, invalid slugs → 404.
+ *
+ * `notFound()` runs in the shell (before anything streams), so unknown
+ * categories return a real 404; the data-heavy part streams behind Suspense.
  */
 export default async function CategoryPage({
   params,
@@ -44,9 +52,6 @@ export default async function CategoryPage({
   const { page: pageParam } = await searchParams;
   const requestedPage = parsePage(pageParam);
 
-  const news = await getNewsByCategory(category);
-  const { items, page, totalPages, totalItems } = paginate(news, requestedPage);
-
   return (
     <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8">
       <header className="mb-6 border-b border-zinc-200 pb-4">
@@ -54,11 +59,34 @@ export default async function CategoryPage({
           {meta.label}
         </h1>
         <p className="mt-1 text-sm text-zinc-600">{meta.description}</p>
-        <p className="mt-1 text-sm text-zinc-500">
-          {totalItems > 0 ? `${totalItems} матеріалів` : "Немає матеріалів"}
-          {totalPages > 1 ? ` · сторінка ${page} із ${totalPages}` : ""}
-        </p>
       </header>
+
+      <Suspense
+        key={`category-${category}-${requestedPage}`}
+        fallback={<NewsGridSkeleton />}
+      >
+        <CategoryResults category={category} requestedPage={requestedPage} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function CategoryResults({
+  category,
+  requestedPage,
+}: {
+  category: NewsCategory;
+  requestedPage: number;
+}) {
+  const news = await getNewsByCategory(category);
+  const { items, page, totalPages, totalItems } = paginate(news, requestedPage);
+
+  return (
+    <>
+      <p className="mb-4 text-sm text-zinc-500">
+        {totalItems > 0 ? `${totalItems} матеріалів` : "Немає матеріалів"}
+        {totalPages > 1 ? ` · сторінка ${page} із ${totalPages}` : ""}
+      </p>
 
       {totalItems === 0 ? (
         <div className="border border-amber-300 bg-amber-50 p-6 text-zinc-800">
@@ -78,6 +106,6 @@ export default async function CategoryPage({
           />
         </>
       )}
-    </main>
+    </>
   );
 }

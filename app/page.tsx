@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { NewsGrid } from "@/components/news/NewsGrid";
+import { NewsGridSkeleton } from "@/components/news/NewsGridSkeleton";
 import { NewsPagination } from "@/components/news/NewsPagination";
 import { paginate, parsePage } from "@/lib/pagination";
 import { getAllNews } from "@/lib/rss/aggregator";
@@ -8,6 +10,10 @@ type HomeSearchParams = Promise<{ [key: string]: string | string[] | undefined }
 /**
  * Homepage: aggregated latest news, PAGE_SIZE (25) articles per page,
  * server-rendered with URL-based pagination.
+ *
+ * The page shell renders immediately; the data-heavy part streams in behind a
+ * Suspense boundary so visitors get feedback without a segment-level
+ * `loading.tsx` (which would stream a 200 before `notFound()` on other routes).
  */
 export default async function HomePage({
   searchParams,
@@ -17,9 +23,6 @@ export default async function HomePage({
   const { page: pageParam } = await searchParams;
   const requestedPage = parsePage(pageParam);
 
-  const news = await getAllNews();
-  const { items, page, totalPages, totalItems } = paginate(news, requestedPage);
-
   return (
     <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8">
       <header className="mb-6 border-b border-zinc-200 pb-4">
@@ -28,10 +31,26 @@ export default async function HomePage({
         </h1>
         <p className="mt-1 text-sm text-zinc-600">
           Агреговано з публічних RSS-джерел
-          {totalItems > 0 ? ` · ${totalItems} матеріалів` : ""}
-          {totalPages > 1 ? ` · сторінка ${page} із ${totalPages}` : ""}
         </p>
       </header>
+
+      <Suspense key={`home-${requestedPage}`} fallback={<NewsGridSkeleton />}>
+        <HomeResults requestedPage={requestedPage} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function HomeResults({ requestedPage }: { requestedPage: number }) {
+  const news = await getAllNews();
+  const { items, page, totalPages, totalItems } = paginate(news, requestedPage);
+
+  return (
+    <>
+      <p className="mb-4 text-sm text-zinc-500">
+        {totalItems > 0 ? `${totalItems} матеріалів` : "Немає матеріалів"}
+        {totalPages > 1 ? ` · сторінка ${page} із ${totalPages}` : ""}
+      </p>
 
       {totalItems === 0 ? (
         <div className="border border-amber-300 bg-amber-50 p-6 text-zinc-800">
@@ -47,6 +66,6 @@ export default async function HomePage({
           <NewsPagination pathname="/" page={page} totalPages={totalPages} />
         </>
       )}
-    </main>
+    </>
   );
 }

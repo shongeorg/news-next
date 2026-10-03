@@ -16,7 +16,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const article = await getNewsBySlug(slug);
-  if (!article) return { title: "Новину не знайдено" };
+  if (!article) {
+    // Throwing before the shell streams guarantees a real HTTP 404 status.
+    notFound();
+  }
 
   return {
     title: article.title,
