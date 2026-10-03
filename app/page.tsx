@@ -21,7 +21,7 @@ export default async function HomePage({
   const { items, page, totalPages, totalItems } = paginate(news, requestedPage);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8">
+    <main id="main" className="mx-auto w-full max-w-6xl px-4 py-8">
       <header className="mb-6 border-b border-zinc-200 pb-4">
         <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">
           Останні новини
