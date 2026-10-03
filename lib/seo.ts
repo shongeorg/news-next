@@ -6,18 +6,25 @@ import { getCategoryMeta, type NewsArticle } from "@/types/news";
  * Canonical origin of the site.
  * Coming from env, never hardcoded (project.md §39–41).
  *
- * Order: explicit NEXT_PUBLIC_SITE_URL → the configured app URL → Vercel's
- * own production-domain variable → localhost (local development).
+ * Two environments share the same variables:
+ * - local build → NEXT_PUBLIC_SITE_URL (http://localhost:3000),
+ * - Vercel build → NEXT_PUBLIC_APP_URL (the production domain).
+ *
+ * On Vercel the local URL must never win, otherwise canonical, og:url,
+ * robots.txt and the sitemap would point at localhost — so there the
+ * production variables come first.
  */
 export function getSiteUrl(): string {
-  const candidates = [
-    process.env.NEXT_PUBLIC_SITE_URL,
-    process.env.NEXT_PUBLIC_APP_URL,
-    process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : undefined,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-  ];
+  // On Vercel the production URL always wins — never localhost, never a
+  // preview deployment domain (canonicals must not flip between them).
+  const onVercel = Boolean(process.env.VERCEL);
+  const productionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : undefined;
+
+  const candidates = onVercel
+    ? [process.env.NEXT_PUBLIC_APP_URL, productionUrl]
+    : [process.env.NEXT_PUBLIC_SITE_URL, productionUrl];
 
   for (const candidate of candidates) {
     if (!candidate) continue;

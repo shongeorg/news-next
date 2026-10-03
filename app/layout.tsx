@@ -25,6 +25,12 @@ export const metadata: Metadata = {
   icons: { icon: "/icon.png" },
 };
 
+/**
+ * RSS aggregation may take two timed attempts per feed (project.md §13–15);
+ * the platform budget must cover it so a slow source never turns into a 504.
+ */
+export const maxDuration = 30;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

@@ -29,11 +29,12 @@ const parser = new Parser({
 /** Maximum number of items kept per source so one huge feed cannot dominate. */
 const MAX_ITEMS_PER_SOURCE = 50;
 
-/**
- * Downloads a feed server-side with a hard timeout.
- * A slow or broken RSS server can never block aggregation indefinitely.
- */
-export async function fetchFeedXml(url: string): Promise<string> {
+/** One retry absorbs a transient reset/hang without unbounded blocking. */
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 400;
+
+/** Single attempt: hard timeout, status check, non-empty body check. */
+async function downloadFeedXml(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: REQUEST_HEADERS,
     cache: "no-store",
@@ -50,6 +51,45 @@ export async function fetchFeedXml(url: string): Promise<string> {
     throw new Error("empty response body");
   }
   return xml;
+}
+
+/** Compact error report including the transport-level cause, if any. */
+function errorDetails(reason: unknown): string {
+  if (!(reason instanceof Error)) return String(reason);
+  const cause = reason.cause as { code?: string; message?: string } | undefined;
+  const causeInfo = cause ? ` cause=${cause.code ?? cause.message ?? "?"}` : "";
+  return `${reason.name}: ${reason.message}${causeInfo}`;
+}
+
+/**
+ * Downloads a feed server-side with a hard timeout and one immediate retry.
+ * A slow or broken RSS server can never block aggregation indefinitely
+ * (worst case ≈ 2 × RSS_FETCH_TIMEOUT_MS + delay, inside `maxDuration`),
+ * while a single dropped connection no longer removes a working source.
+ */
+export async function fetchFeedXml(url: string): Promise<string> {
+  let lastError: unknown;
+  let attempts = 0;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    attempts = attempt;
+    try {
+      return await downloadFeedXml(url);
+    } catch (error) {
+      lastError = error;
+
+      // An HTTP status answer is definitive — retrying it is pointless.
+      if (error instanceof Error && error.message.startsWith("HTTP ")) {
+        throw error;
+      }
+      if (attempt === MAX_ATTEMPTS) break;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+
+  throw new Error(
+    `fetch failed after ${attempts} attempt(s): ${errorDetails(lastError)}`,
+  );
 }
 
 /**

@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Новини UA
 
-## Getting Started
+SEO-орієнтований український новинний агрегатор: лише публічні RSS-джерела,
+серверна вибірка даних, мінімум клієнтського JS. Специфікація — у файлі
+`project.md`.
 
-First, run the development server:
+## Стек
+
+- Next.js 16 (App Router, RSC), TypeScript, Tailwind CSS 4
+- `rss-parser` для розбору стрічок, `unstable_cache` (300 с) для кешу вибірки
+- без бази даних, CMS, авторизації та парсингу повних текстів статей
+
+## Команди
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev        # розробка: http://localhost:3000
+npm run build      # продакшен-збірка
+npm run start      # запуск зібраного застосунку
+npm run lint       # ESLint
+npm run test       # Playwright (усі тести + скріншоти)
+npm run test:ui    # Playwright UI mode
+npm run deploy     # vercel --prod
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Структура
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `app/` — маршрути: головна (пагінація), категорії, `/news/[slug]`,
+  `/search`, `robots.ts`, `sitemap.ts`
+- `lib/` — агрегація RSS (`lib/rss/`), пошук, SEO-хелпери (`lib/seo.ts`),
+  константи
+- `components/` — UI-компоненти (шапка, картки, пагінація, пошук)
+- `tests/` — інтеграційні та скріншот-тести Playwright
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Середовище (env)
 
-## Learn More
+| змінна | призначення |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | локальний origin (`http://localhost:3000`) |
+| `NEXT_PUBLIC_APP_URL` | production-домен на Vercel |
 
-To learn more about Next.js, take a look at the following resources:
+`getSiteUrl()` обирає змінну за середовищем: локально — `NEXT_PUBLIC_SITE_URL`,
+на Vercel — `NEXT_PUBLIC_APP_URL`. Додатковий запасний варіант —
+`VERCEL_PROJECT_PRODUCTION_URL` (системна змінна Vercel). Локальний файл
+`.env.local` не комітиться (у `.gitignore`), `.env.example` — шаблон.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Деплой
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Проєкт розгорнутий на Vercel: `https://news-next-three.vercel.app`.
+Деплой — `npm run deploy` (потрібен `npx vercel login` і лінк проєкту).
