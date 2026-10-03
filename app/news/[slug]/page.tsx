@@ -2,10 +2,17 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { SimilarNews } from "@/components/news/SimilarNews";
+import { SITE_NAME } from "@/lib/constants";
 import { formatDateTime, formatDate } from "@/lib/format";
 import { getCategoryMeta } from "@/types/news";
 import { getNewsBySlug, getSimilarNews } from "@/lib/rss/aggregator";
+import {
+  absoluteUrl,
+  defaultOgImage,
+  getNewsArticleJsonLd,
+} from "@/lib/seo";
 
 type ArticleParams = Promise<{ slug: string }>;
 
@@ -21,25 +28,38 @@ export async function generateMetadata({
     notFound();
   }
 
+  const category = getCategoryMeta(article.category);
+  // og:image is required for every article; fall back to the generic site
+  // image when the feed has no picture (project.md §48).
+  const image = article.imageUrl ?? absoluteUrl("/og-default.png");
+  const description = article.description || undefined;
+
   return {
     title: article.title,
-    description: article.description || undefined,
+    description,
     alternates: { canonical: `/news/${article.slug}` },
     robots: { index: true, follow: true },
     openGraph: {
       title: article.title,
-      description: article.description || undefined,
-      url: `/news/${article.slug}`,
+      description,
+      url: absoluteUrl(`/news/${article.slug}`),
+      siteName: SITE_NAME,
+      locale: "uk_UA",
       type: "article",
+      section: category.label,
       publishedTime: article.publishedAt ?? undefined,
       modifiedTime: article.updatedAt ?? undefined,
-      images: article.imageUrl ? [{ url: article.imageUrl }] : undefined,
+      images: [
+        article.imageUrl
+          ? { url: article.imageUrl, alt: article.title }
+          : defaultOgImage(),
+      ],
     },
     twitter: {
       card: article.imageUrl ? "summary_large_image" : "summary",
       title: article.title,
-      description: article.description || undefined,
-      images: article.imageUrl ? [article.imageUrl] : [],
+      description,
+      images: [image],
     },
   };
 }
@@ -98,6 +118,7 @@ export default async function NewsArticlePage({
       </nav>
 
       <article>
+        <JsonLd data={getNewsArticleJsonLd(article)} />
         <header className="mb-6">
           <p className="text-xs font-semibold tracking-wide text-red-700 uppercase">
             <Link href={`/category/${category.slug}`} className="hover:text-brand-800">

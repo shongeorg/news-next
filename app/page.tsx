@@ -1,11 +1,52 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { NewsGrid } from "@/components/news/NewsGrid";
 import { NewsGridSkeleton } from "@/components/news/NewsGridSkeleton";
 import { NewsPagination } from "@/components/news/NewsPagination";
+import { DEFAULT_DESCRIPTION, SITE_NAME } from "@/lib/constants";
 import { paginate, parsePage } from "@/lib/pagination";
 import { getAllNews } from "@/lib/rss/aggregator";
+import {
+  DEFAULT_OG_IMAGE_PATH,
+  absoluteUrl,
+  defaultOgImage,
+} from "@/lib/seo";
 
 type HomeSearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+/**
+ * Canonical strategy for pagination: page 1 is `/`, deeper pages are
+ * self-canonical (`/?page=2`), never all pointed at the homepage (§42).
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: HomeSearchParams;
+}): Promise<Metadata> {
+  const { page: pageParam } = await searchParams;
+  const page = parsePage(pageParam);
+  const path = page > 1 ? `/?page=${page}` : "/";
+
+  return {
+    description: DEFAULT_DESCRIPTION,
+    alternates: { canonical: path },
+    openGraph: {
+      title: SITE_NAME,
+      description: DEFAULT_DESCRIPTION,
+      url: absoluteUrl(path),
+      siteName: SITE_NAME,
+      locale: "uk_UA",
+      type: "website",
+      images: [defaultOgImage()],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: SITE_NAME,
+      description: DEFAULT_DESCRIPTION,
+      images: [absoluteUrl(DEFAULT_OG_IMAGE_PATH)],
+    },
+  };
+}
 
 /**
  * Homepage: aggregated latest news, PAGE_SIZE (25) articles per page,

@@ -4,8 +4,14 @@ import { Suspense } from "react";
 import { NewsGrid } from "@/components/news/NewsGrid";
 import { NewsGridSkeleton } from "@/components/news/NewsGridSkeleton";
 import { NewsPagination } from "@/components/news/NewsPagination";
+import { SITE_NAME } from "@/lib/constants";
 import { paginate, parsePage } from "@/lib/pagination";
 import { getNewsByCategory } from "@/lib/rss/aggregator";
+import {
+  DEFAULT_OG_IMAGE_PATH,
+  absoluteUrl,
+  defaultOgImage,
+} from "@/lib/seo";
 import { getCategoryMeta, isNewsCategory, type NewsCategory } from "@/types/news";
 
 type CategoryParams = Promise<{ category: string }>;
@@ -13,18 +19,43 @@ type CategorySearchParams = Promise<{ [key: string]: string | string[] | undefin
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: CategoryParams;
+  searchParams: CategorySearchParams;
 }): Promise<Metadata> {
   const { category } = await params;
   if (!isNewsCategory(category)) {
     // Throwing before the shell streams guarantees a real HTTP 404 status.
     notFound();
   }
+
   const meta = getCategoryMeta(category);
+  const { page: pageParam } = await searchParams;
+  const page = parsePage(pageParam);
+  const base = `/category/${category}`;
+  const path = page > 1 ? `${base}?page=${page}` : base;
+  const title = `${meta.label} — Останні новини`;
+
   return {
-    title: meta.label,
+    title,
     description: meta.description,
+    alternates: { canonical: path },
+    openGraph: {
+      title,
+      description: meta.description,
+      url: absoluteUrl(path),
+      siteName: SITE_NAME,
+      locale: "uk_UA",
+      type: "website",
+      images: [defaultOgImage()],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: meta.description,
+      images: [absoluteUrl(DEFAULT_OG_IMAGE_PATH)],
+    },
   };
 }
 
