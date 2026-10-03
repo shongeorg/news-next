@@ -43,9 +43,14 @@ export default async function SearchPage({
         <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">Пошук</h1>
         {query ? (
           <p className="mt-1 text-sm text-zinc-600">
-            Результати за запитом «{query}»:{" "}
-            {totalItems > 0 ? `${totalItems} знайдено` : "нічого не знайдено"}
-            {totalPages > 1 ? ` · сторінка ${page} із ${totalPages}` : ""}
+            {totalItems > 0 ? (
+              <>
+                Результати за запитом «{query}»: {totalItems} знайдено
+                {totalPages > 1 ? ` · сторінка ${page} із ${totalPages}` : ""}
+              </>
+            ) : (
+              <>Запит: «{query}»</>
+            )}
           </p>
         ) : (
           <p className="mt-1 text-sm text-zinc-600">
@@ -58,8 +63,8 @@ export default async function SearchPage({
         <div className="border border-amber-300 bg-amber-50 p-6 text-zinc-800">
           <h2 className="text-lg font-semibold">На жаль, нічого не знайдено</h2>
           <p className="mt-2 text-sm">
-            Спробуйте коротший запит, перевірте написання або шукайте за
-            одним словом — наприклад, «економіка» чи «Київ».
+            Пошук звіряє точні форми слів, тому спробуйте іншу форму або
+            коротший запит — наприклад, «Київ», «Україна» чи «Гордон».
           </p>
         </div>
       ) : query ? (
