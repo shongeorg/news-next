@@ -1,0 +1,37 @@
+# Dependencies
+node_modules
+
+# Playwright test results
+test-results/
+playwright-report/
+blob-report/
+
+# Playwright screenshots
+playwright/.cache/
+
+# Screenshot comparisons (etalons can be committed if needed)
+# tests/__snapshots__/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
