@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { RSS_REVALIDATE_SECONDS } from "@/lib/constants";
+import { RSS_REVALIDATE_SECONDS, SIMILAR_NEWS_COUNT } from "@/lib/constants";
 import { getEnabledSources } from "@/lib/rss/feeds";
 import { parseFeed } from "@/lib/rss/parser";
 import {
@@ -8,6 +8,7 @@ import {
   type FeedCandidate,
 } from "@/lib/rss/deduplicate";
 import { createArticleId, createArticleSlug } from "@/lib/rss/slug";
+import { getSimilarArticles } from "@/lib/rss/similarity";
 import type { NewsArticle, NewsCategory } from "@/types/news";
 
 function describeError(reason: unknown): string {
@@ -110,4 +111,13 @@ export async function getNewsBySlug(slug: string): Promise<NewsArticle | null> {
   if (!slug) return null;
   const news = await getAllNews();
   return news.find((article) => article.slug === slug) ?? null;
+}
+
+/** Deterministic set of similar articles for the article page (project.md §32–33). */
+export async function getSimilarNews(
+  article: NewsArticle,
+  count: number = SIMILAR_NEWS_COUNT,
+): Promise<NewsArticle[]> {
+  const news = await getAllNews();
+  return getSimilarArticles(article, news, count);
 }
